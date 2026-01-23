@@ -8,17 +8,14 @@ dotenv.config();
 
 const app = express();
 app.use(express.json());
-// app.get("/", (req, res) => {
-//   res.send("Hello, Secure Note App!");
-// });
-app.post("/api/users", async (req, res) => {
+
+app.post("/api/register", async (req, res) => {
   const user = req.body;
   if (!user.username || !user.email || !user.password) {
     return res
       .status(400)
       .json({ success: false, message: "All fields are required" });
   }
-  //   const newUser = new User(user);
   try {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(user.password, saltRounds);
@@ -34,6 +31,49 @@ app.post("/api/users", async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "Error creating user", error });
+  }
+});
+
+app.post("/api/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Username and password are required" });
+  }
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid credentials" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid credentials" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "User logged in successfully",
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error logging in user",
+      error,
+    });
   }
 });
 
