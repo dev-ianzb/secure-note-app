@@ -1,12 +1,13 @@
 import express from "express";
-import dotenv from "dotenv";
 import User from "../models/tbl_users.model.js";
+import Notes from "../models/tbl_notes.model.js";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
 
 const router = express.Router();
+//Login and Register routes
 router.post("/register", async (req, res) => {
   const { username, email, password } = req.body;
   if (!username || !email || !password) {
@@ -128,6 +129,50 @@ router.post("/login", async (req, res) => {
       message: "Error logging in user",
       error,
     });
+  }
+});
+
+// Notes routes
+router.post("/notes", async (req, res) => {
+  const { username, title, content } = req.body;
+
+  if (!username || !content) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Username and content are required" });
+  }
+  const newNote = new Notes({
+    username,
+    title,
+    content,
+  });
+  try {
+    await newNote.save();
+    res
+      .status(201)
+      .json({ success: true, message: "Note created successfully", newNote });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to create note", err });
+  }
+});
+
+router.delete("/notes/:id", async (req, res) => {
+  try {
+    const deletedNote = await Notes.findByIdAndDelete(req.params.id);
+    if (!deletedNote) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Note not found" });
+    }
+    res
+      .status(200)
+      .json({ success: true, message: "Note deleted successfully" });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to delete note", err });
   }
 });
 
