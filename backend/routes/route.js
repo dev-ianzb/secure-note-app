@@ -176,4 +176,16 @@ router.delete("/notes/:id", async (req, res) => {
   }
 });
 
+router.get("/notes/:username", async (req, res) => {
+  try {
+    const notes = await Notes.find({ username: req.params.username });
+
+    res.status(200).json({ success: true, notes });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to retrieve notes", err });
+  }
+});
+
 export default router;
