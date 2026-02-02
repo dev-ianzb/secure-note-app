@@ -5,6 +5,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
+import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
 //Login and Register routes
@@ -133,7 +134,7 @@ router.post("/login", async (req, res) => {
 });
 
 // Notes routes
-router.post("/notes", async (req, res) => {
+router.post("/notes", protect, async (req, res) => {
   const { username, title, content } = req.body;
 
   if (!username || !content) {
@@ -158,7 +159,7 @@ router.post("/notes", async (req, res) => {
   }
 });
 
-router.delete("/notes/:id", async (req, res) => {
+router.delete("/notes/:id", protect, async (req, res) => {
   try {
     const deletedNote = await Notes.findByIdAndDelete(req.params.id);
     if (!deletedNote) {
@@ -176,7 +177,7 @@ router.delete("/notes/:id", async (req, res) => {
   }
 });
 
-router.get("/notes/:username", async (req, res) => {
+router.get("/notes/:username", protect, async (req, res) => {
   try {
     const notes = await Notes.find({ username: req.params.username });
 
@@ -185,6 +186,68 @@ router.get("/notes/:username", async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "Failed to retrieve notes", err });
+  }
+});
+
+router.put("/notes/:id", protect, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, content } = req.body;
+
+    const updatedNote = await Notes.findByIdAndUpdate(
+      id,
+      { title, content },
+      { new: true },
+    );
+
+    if (!updatedNote) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Note not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Note updated successfully",
+      updatedNote,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update note",
+      err,
+    });
+  }
+});
+
+// Admin routes
+router.get("/admin/users", async (req, res) => {
+  try {
+    const users = await User.find({});
+
+    res.status(200).json({ success: true, data: users });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to retrieve Users", err });
+  }
+});
+
+router.delete("/admin/:id", async (req, res) => {
+  try {
+    const deletedUser = await User.findByIdAndDelete(req.params.id);
+    if (!deletedUser) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+    res
+      .status(200)
+      .json({ success: true, message: "User deleted successfully" });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to delete user", err });
   }
 });
 
